@@ -1,0 +1,26 @@
+% Define the constants in the model.
+Model_consts=containers.Map; 
+Model_consts('r')=0.2;
+Model_consts('l0')=0.4;
+Model_consts('l1')=0.8;
+Model_consts('l2')=0.7;
+Model_consts('m0')=1;
+Model_consts('m1')=1;
+Model_consts('m2')=1;
+Model_consts('g')=9.81;
+
+% Initialize the state variables.
+State_variables=[0,0,0,0,0,0]; %theta,alpha,beta,dtheta,dalpha,dbeta
+Zdisplay(Model_consts,State_variables);
+
+dt=0.05;
+
+
+[ddot_theta_sol, ddot_alpha_sol, ddot_beta_sol]=Zsolve_dd;
+
+
+for i = 0:0.01:1 
+    Controls_u=
+    Zdisplay(Model_consts,State_variable);
+    new_State_variables=Zupdate(Model_consts,State_variables,C)
+end

@@ -1,0 +1,48 @@
+% Define system matrices
+A = [0 1; 
+     0 0];
+B = [0; 
+     1];
+ 
+% Define cost function matrices
+Q = eye(2);  % Penalize both x and v equally
+R = 1;       % Control effort penalty
+Q(1,1)=10;
+% Solve for the LQR gain
+K = lqr(A, B, Q, R);
+
+% Simulation time
+T = 10;  % Total time
+dt = 0.01;  % Time step
+time = 0:dt:T;  % Time vector
+
+% Initial conditions
+x0 = [5; 0];  % Initial position and velocity
+
+% Initialize state vector
+x = x0;
+x_history = x0';
+
+% Run the simulation
+for t = 2:length(time)
+    u = -K * x;  % Compute control input
+    dx = A*x + B*u;  % Compute state derivatives
+    x = x + dx*dt;  % Update state
+    x_history = [x_history; x'];  % Store state history
+end
+
+% Plot results
+figure;
+subplot(2,1,1);
+plot(time, x_history(:,1), 'b', 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('Position x(t)');
+title('Position vs Time');
+grid on;
+
+subplot(2,1,2);
+plot(time, x_history(:,2), 'r', 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('Velocity v(t)');
+title('Velocity vs Time');
+grid on;

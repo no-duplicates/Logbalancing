@@ -1,0 +1,71 @@
+function [ddot_theta_sol, ddot_alpha_sol, ddot_beta_sol]=Zsolve_dd
+    % Define symbolic variables
+    syms theta alpha beta dtheta dalpha dbeta ddot_theta ddot_alpha ddot_beta
+    syms m0 m1 m2 l1 l2 r g tau1 tau2 l0
+    
+    % Define positions and their second derivatives
+    
+    x0 = -sin(theta)*r + theta*cos(theta)*r-cos(theta)*l0;
+    y0 = cos(theta)*r + theta*sin(theta)*r-sin(theta)*l0;
+    x1 = x0 - sin(alpha)*l1;
+    y1 = y0 + cos(alpha)*l1;
+    x2 = x1 - sin(beta)*l2;
+    y2 = y1 + cos(beta)*l2;
+    
+    % Calculate second derivatives
+    
+    
+    
+    %ddot_x0 = -cos(theta)*ddot_theta*r - 2*sin(theta)*(diff(theta)^2)*r + theta*(-sin(theta)*ddot_theta*r + cos(theta)*ddot_theta*r);
+    %ddot_y0 = -sin(theta)*ddot_theta*r + 2*cos(theta)*(diff(theta)^2)*r + theta*(cos(theta)*ddot_theta*r - sin(theta)*ddot_theta*r);
+    %ddot_x0 = -cos(theta)*ddot_theta*r - (sin(theta)*diff(theta)^2 + cos(theta)*ddot_theta)*r + (ddot_theta*cos(theta) - theta*ddot_theta*sin(theta) - theta*diff(theta)^2*sin(theta))*r;
+    %ddot_y0 = -sin(theta)*ddot_theta*r - (cos(theta)*diff(theta)^2 + sin(theta)*ddot_theta)*r + (ddot_theta*sin(theta) + theta*ddot_theta*cos(theta) - cos(theta)*diff(theta)^2)*r - cos(theta)*ddot_theta*l0;
+    dx_0=diff(x0,theta);
+    ddot_x0=diff(dx_0,theta)*dtheta^2+dx_0*ddot_theta;
+    dy_0=diff(y0,theta);
+    ddot_y0=diff(dy_0,theta)*dtheta^2+dy_0*ddot_theta;
+    
+    dx_1=diff(x1,alpha);
+    ddot_x1=diff(dx_1,alpha)*dalpha^2+dx_1*ddot_alpha+ddot_x0;
+    dy_1=diff(y1,alpha);
+    ddot_y1=diff(dy_1,alpha)*dalpha^2+dy_1*ddot_alpha+ddot_y0;
+    
+    dx_2=diff(x2,beta);
+    ddot_x2=diff(dx_2,beta)*dbeta^2+dx_2*ddot_beta+ddot_x1;
+    dy_2=diff(y2,beta);
+    ddot_y2=diff(dy_2,beta)*dbeta^2+dy_2*ddot_beta+ddot_y1;
+    %ddot_x1 = ddot_x0 - ddot_alpha*l1;
+    %ddot_y1 = ddot_y0 + ddot_alpha*l1;
+    %ddot_x2 = ddot_x1 - ddot_beta*l2;
+    %ddot_y2 = ddot_y1 + ddot_beta*l2;
+    
+    % Define the equations
+    eq1 = -ddot_x2*(cos(beta)*l2 + cos(alpha)*l1)*m2 - (ddot_y2 + g)*(sin(beta)*l2 + sin(alpha)*l1)*m2 - ddot_x1*cos(alpha)*l1*m1 - (ddot_y1 + g)*sin(alpha)*l1*m1 == tau1;
+    eq2 = -ddot_x2*cos(beta)*l2*m2 - (ddot_y2 + g)*sin(beta)*l2*m2 == tau2;
+    
+    % Define the normal forces
+    Nx = sin(theta)*tau1 / (-l0+r*theta);
+    Ny = cos(theta)*tau1 / (l0-r*theta);
+    
+    % Define the normal force equation
+    eq3 = Nx*(ddot_x0*m0 + ddot_x1*m1 + ddot_x2*m2) + Ny*((ddot_y0 + g)*m0 + (ddot_y1 + g)*m1 + (ddot_y2 + g)*m2) == Nx^2 + Ny^2;
+    
+    % Solve the equations
+    [ddot_theta_sol, ddot_alpha_sol, ddot_beta_sol] = solve([eq1, eq2, eq3], [ddot_theta, ddot_alpha, ddot_beta]);
+    
+    % Display the solutions
+    disp('Second derivative of theta:');
+    disp(ddot_theta_sol);
+    
+    disp('Second derivative of alpha:');
+    disp(ddot_alpha_sol);
+    
+    disp('Second derivative of beta:');
+    disp(ddot_beta_sol);
+    
+    
+    values = struct('l0',0.1,'l1', 1, 'l2', 1, 'm1',1, 'm2',1, 'm0', 10, 'r', 0.2, 'tau1', 10, 'tau2',0.5, 'theta', 0.0000, 'alpha', 0, 'beta', 0.000, 'dtheta',0,'dalpha',0,'dbeta',0,'g', 9.81);
+    
+    disp(double(subs(ddot_alpha_sol,values)))
+    disp(double(subs(ddot_beta_sol,values)))
+    disp(double(subs(ddot_theta_sol,values)))

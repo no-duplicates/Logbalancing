@@ -1,0 +1,146 @@
+function Controls_u=state1control(Model_consts,State_variables,solutions_dd)
+    Controls_u=[0,0];
+    % Define symbolic variables
+    %syms theta alpha beta dtheta dalpha dbeta ddot_theta ddot_alpha ddot_beta
+    %syms m0 m1 m2 l1 l2 r g tau1 tau2 l0
+    
+    % Define symbolic variables using sym
+    theta = sym('theta');
+    alpha = sym('alpha');
+    beta = sym('beta');
+    dtheta = sym('dtheta');
+    dalpha = sym('dalpha');
+    dbeta = sym('dbeta');
+    ddot_theta = sym('ddot_theta');
+    ddot_alpha = sym('ddot_alpha');
+    ddot_beta = sym('ddot_beta');
+    
+    % Define additional symbolic variables
+    m0 = sym('m0');
+    m1 = sym('m1');
+    m2 = sym('m2');
+    l0 = sym('l0');
+    l1 = sym('l1');
+    l2 = sym('l2');
+    r = sym('r');
+    g = sym('g');
+    tau1 = sym('tau1');
+    tau2 = sym('tau2');
+    
+
+    % Define positions and their second derivatives
+    
+    x0 = -sin(theta)*r + theta*cos(theta)*r-cos(theta)*l0;
+    y0 = cos(theta)*r + theta*sin(theta)*r-sin(theta)*l0;
+    x1 = x0 - sin(alpha)*l1;
+    y1 = y0 + cos(alpha)*l1;
+    x2 = x1 - sin(beta)*l2;
+    y2 = y1 + cos(beta)*l2;
+    
+    % Calculate second derivatives
+    
+    
+    
+    %ddot_x0 = -cos(theta)*ddot_theta*r - 2*sin(theta)*(diff(theta)^2)*r + theta*(-sin(theta)*ddot_theta*r + cos(theta)*ddot_theta*r);
+    %ddot_y0 = -sin(theta)*ddot_theta*r + 2*cos(theta)*(diff(theta)^2)*r + theta*(cos(theta)*ddot_theta*r - sin(theta)*ddot_theta*r);
+    %ddot_x0 = -cos(theta)*ddot_theta*r - (sin(theta)*diff(theta)^2 + cos(theta)*ddot_theta)*r + (ddot_theta*cos(theta) - theta*ddot_theta*sin(theta) - theta*diff(theta)^2*sin(theta))*r;
+    %ddot_y0 = -sin(theta)*ddot_theta*r - (cos(theta)*diff(theta)^2 + sin(theta)*ddot_theta)*r + (ddot_theta*sin(theta) + theta*ddot_theta*cos(theta) - cos(theta)*diff(theta)^2)*r - cos(theta)*ddot_theta*l0;
+    dx_0=diff(x0,theta);
+    ddot_x0=diff(dx_0,theta)*dtheta^2+dx_0*ddot_theta;
+    dy_0=diff(y0,theta);
+    ddot_y0=diff(dy_0,theta)*dtheta^2+dy_0*ddot_theta;
+    
+    dx_1=diff(x1,alpha);
+    ddot_x1=diff(dx_1,alpha)*dalpha^2+dx_1*ddot_alpha+ddot_x0;
+    dy_1=diff(y1,alpha);
+    ddot_y1=diff(dy_1,alpha)*dalpha^2+dy_1*ddot_alpha+ddot_y0;
+    
+    dx_2=diff(x2,beta);
+    ddot_x2=diff(dx_2,beta)*dbeta^2+dx_2*ddot_beta+ddot_x1;
+    dy_2=diff(y2,beta);
+    ddot_y2=diff(dy_2,beta)*dbeta^2+dy_2*ddot_beta+ddot_y1;
+    %ddot_x1 = ddot_x0 - ddot_alpha*l1;
+    %ddot_y1 = ddot_y0 + ddot_alpha*l1;
+    %ddot_x2 = ddot_x1 - ddot_beta*l2;
+    %ddot_y2 = ddot_y1 + ddot_beta*l2;
+    
+    % Define the equations
+    eq1 = -ddot_x2*(cos(beta)*l2 + cos(alpha)*l1)*m2 - (ddot_y2 + g)*(sin(beta)*l2 + sin(alpha)*l1)*m2 - ddot_x1*cos(alpha)*l1*m1 - (ddot_y1 + g)*sin(alpha)*l1*m1 == tau1;
+    eq2 = -ddot_x2*cos(beta)*l2*m2 - (ddot_y2 + g)*sin(beta)*l2*m2 == tau2;
+    
+    % Define the normal forces
+    Nx = sin(theta)*tau1 / (-l0+r*theta);
+    Ny = cos(theta)*tau1 / (l0-r*theta);
+    
+    % Define the normal force equation
+    eq3 = Nx*(ddot_x0*m0 + ddot_x1*m1 + ddot_x2*m2) + Ny*((ddot_y0 + g)*m0 + (ddot_y1 + g)*m1 + (ddot_y2 + g)*m2) == Nx^2 + Ny^2;
+    
+    eq4= ddot_beta==ddot_alpha;
+    
+
+
+
+    [COM_x,COM_y]=getCOM(Model_consts,State_variables);
+    ka_x=Model_consts('g')/(COM_y-Model_consts('r'));
+
+
+    [COMv_x,COMv_y]=getCOMv(Model_consts,State_variables,solutions_dd);
+    
+    
+
+
+    %Start lqr
+    % Define system matrices
+    A = [0 1; 
+         0 0];
+    B = [0; 
+         1];
+     
+    % Define cost function matrices
+    Q = eye(2)*2;  % Penalize both x and v equally
+    R = 1;       % Control effort penalty
+    
+    % Solve for the LQR gain
+    K = lqr(A, B, Q, R);
+    
+    target_a=-K*[COM_x;COMv_x];
+
+
+    target_theta=asin((target_a/ka_x-COM_x)/Model_consts('r'));
+    target_thetas.append()
+
+
+    %Start for pd controls.
+
+    Kp = 100;   % Proportional gain
+    Kd =0.1; % Derivative gain
+    error = target_theta-State_variables(1);
+    
+    % Proportional term
+    P = Kp * error;
+    
+   
+    
+    % Derivative term
+    derivative = State_variables(4);
+    D = Kd * derivative;
+    
+    % PID control law
+    Controls_u(1) =-( P + D) % the positive control will bring negative dtheta
+    
+        
+
+    Controls_u(1)=Controls_u(1)+Model_consts('g')*(Model_consts('m0')+Model_consts('m1')+Model_consts('m2'))*Model_consts('l0')*cos(State_variables(1));
+    % Solve the equations
+    [ddot_theta_sol, ddot_alpha_sol, ddot_beta_sol,tau_2_sol] = solve([eq1, eq2, eq3,eq4], [ddot_theta, ddot_alpha, ddot_beta,tau2]);
+    values = struct('l0',Model_consts('l0'),'l1',Model_consts('l1') , 'l2', ...
+        Model_consts('l2'), 'm1',Model_consts('m1'), 'm2',Model_consts('m2'), ...
+        'm0', Model_consts('m0'), 'r', Model_consts('r'), ...
+        'tau1', Controls_u(1),  ...
+        'theta', State_variables(1), 'alpha',State_variables(2) , 'beta', State_variables(3), ...
+        'dtheta',State_variables(4),'dalpha',State_variables(5),'dbeta',State_variables(6), ...
+        'g', Model_consts('g'));
+    
+    %test=[(double(subs(ddot_beta_sol,values))),(double(subs(ddot_alpha_sol,values))),(double(subs(tau_2_sol,values)))]
+    Controls_u(2)=(double(subs(tau_2_sol,values)));
+end
