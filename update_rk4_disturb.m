@@ -1,14 +1,14 @@
-function new_State_variables=update_rk4(Model_consts,State_variables,Controls_u,dt,solutions_dd)
+function new_State_variables=update_rk4_disturb(Model_consts,State_variables,Controls_u,dt,solutions_dd_disturb,F_external)
 
 
     
     
     
     % 计算k1, k2, k3, k4
-    k1 = double(dynamics(Model_consts,State_variables, Controls_u,solutions_dd));
-    k2 = double(dynamics(Model_consts,State_variables + 0.5*dt*k1, Controls_u,solutions_dd));
-    k3 = double(dynamics(Model_consts,State_variables + 0.5*dt*k2, Controls_u,solutions_dd));
-    k4 = double(dynamics(Model_consts,State_variables + dt*k3, Controls_u,solutions_dd));
+    k1 = double(dynamics(Model_consts,State_variables, Controls_u,solutions_dd_disturb,F_external));
+    k2 = double(dynamics(Model_consts,State_variables + 0.5*dt*k1, Controls_u,solutions_dd_disturb,F_external));
+    k3 = double(dynamics(Model_consts,State_variables + 0.5*dt*k2, Controls_u,solutions_dd_disturb,F_external));
+    k4 = double(dynamics(Model_consts,State_variables + dt*k3, Controls_u,solutions_dd_disturb,F_external));
 
     % 更新状态
     new_State_variables = State_variables + dt * (k1 + 2*k2 + 2*k3 + k4) / 6;
@@ -18,7 +18,7 @@ function new_State_variables=update_rk4(Model_consts,State_variables,Controls_u,
     
 
 end
-function dx = dynamics(Model_consts, x, u,solutions_dd)
+function dx = dynamics(Model_consts, x, u,solutions_dd_disturb,F_external)
     % Extract model constants
     params = [Model_consts('l0'), Model_consts('l1'), Model_consts('l2'), ...
               Model_consts('m0'), Model_consts('m1'), Model_consts('m2'), ...
@@ -30,17 +30,17 @@ function dx = dynamics(Model_consts, x, u,solutions_dd)
     % Extract control inputs
     control = [u(1), u(2)];
     % Correct calling convention
-ddtheta_val = solutions_dd{1}(state(1), state(2), state(3), state(4), state(5), state(6), ...
+ddtheta_val = solutions_dd_disturb{1}(state(1), state(2), state(3), state(4), state(5), state(6), ...
                               control(1), control(2), ...
-                              params(1), params(2), params(3), params(4), params(5), params(6), params(7), params(8));
+                              params(1), params(2), params(3), params(4), params(5), params(6), params(7), params(8),F_external);
 
-ddalpha_val = solutions_dd{2}(state(1), state(2), state(3), state(4), state(5), state(6), ...
+ddalpha_val = solutions_dd_disturb{2}(state(1), state(2), state(3), state(4), state(5), state(6), ...
                               control(1), control(2), ...
-                              params(1), params(2), params(3), params(4), params(5), params(6), params(7), params(8));
+                              params(1), params(2), params(3), params(4), params(5), params(6), params(7), params(8),F_external);
 
-ddbeta_val  = solutions_dd{3}(state(1), state(2), state(3), state(4), state(5), state(6), ...
+ddbeta_val  = solutions_dd_disturb{3}(state(1), state(2), state(3), state(4), state(5), state(6), ...
                               control(1), control(2), ...
-                              params(1), params(2), params(3), params(4), params(5), params(6), params(7), params(8));
+                              params(1), params(2), params(3), params(4), params(5), params(6), params(7), params(8),F_external);
 
 
     % Return state derivatives
